@@ -4,23 +4,20 @@ import threading
 import time
 from multiprocessing import Queue
 
-def CommandConnection(dataConnection, addr, command):
+def CommandConnection(dataConnection, command):
     print 'Thread started'
+    print command
     #Thread handles command
-    time.sleep(1)
     if command == 'Marco':
-        dataConnection.send('Polo')
+        connection.send('Polo')
         print 'Sent Polo'
-    elif command == 'Luis':
-    	dataConnection.send('Clark')
-        print 'Sent Clark'
     else:
-        dataConnection.send('Invalid command')
+        connection.send('Invalid command')
         print 'Sent Invalid command'
     
 def ClientConnection(dataConnection,address):
     print 'Child started'
-    
+        
     print 'Waiting for command'
     #Child listens for data
     command = dataConnection.recv(1024)
@@ -28,11 +25,11 @@ def ClientConnection(dataConnection,address):
 
     print 'Starting thread'
     #Child creates thread to handle command
-    try:
-    	worker = threading.Thread(target=CommandConnection, args=(dataConnection, addr, command))
-    	worker.start()
-    except:
-        print "Error!"
+    #try:
+    worker = threading.Thread(target=CommandConnection, args=(dataConnection, command))
+    worker.start()
+    #except:
+        #print "Error!"
     worker.join()
 
 #Create socket
@@ -54,7 +51,7 @@ if __name__ == '__main__':
         commandSock = socket.socket()
         commandSock.bind((host, ephPort))
         print 'Child port bound'
-        commandSock.listen(1)
+        commandSock.listen(5)
         
         #send port number
         connection.send(str(ephPort))
@@ -68,8 +65,8 @@ if __name__ == '__main__':
         print 'Creating process'
         #Fork child
         child = multiprocessing.Process(target=ClientConnection, args=(dataConnection,addr,))
-        child.deamon = True
+        #child.deamon = True
         print 'Starting process'
         child.start()
-        #dataConnection.send('polo')
+        dataConnection.send('polo')
         #wait()

@@ -19,15 +19,18 @@ commandSock = socket.socket()
 #Connect to port number
 commandSock.connect((host, portNum))
 
-#Close main socket
-mainSock.close()
+
 print 'sending marco'
 #Send command
 commandSock.send('Marco')
 print 'marco sent'
 #Accept data
-print commandSock.recv(1024)
+print 'Waiting for response'
+resp = commandSock.recv(1024)
+print resp
 
-#Close connection
+#Close main socket
+mainSock.close()
+#Close command socket
 commandSock.close()
 print 'Exiting'

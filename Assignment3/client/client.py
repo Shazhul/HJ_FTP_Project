@@ -112,6 +112,8 @@ def main():
 			cmdList = cmd.split()
 			fileName = cmdList[1]
 			s = open(fileName, 'r').read()
+			print(len(s))
+			print(s)
 			ephyconn.sendall(pad(len(s), 1024))
 			recvAll(ephyconn, 1)
 			ephyconn.sendall(s)

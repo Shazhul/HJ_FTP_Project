@@ -83,16 +83,37 @@ def main():
 		
 		while 1:
 			# The size of the incoming command
-			cmdSize = recvAll(clientSock, 1)
+			cmd = unpad(recvAll(clientSock, 1024))
 			clientSock.sendall('1')
-			# Get the inc. command
-			cmd = recvAll(clientSock, cmdSize)
-			clientSock.sendall('1')
-			if(cmd == 'ls'):
+			if(cmd[0:2] == 'ls'):
 				# Get the ephy port
 				ephyconn = recvEphyConn(clientSock)
 				ls(ephyconn)
 				ephyconn.close()
+
+			if(cmd[0:3] == 'get'):
+				ephyconn = recvEphyConn(clientSock)
+				cmdList = cmd.split()
+				fileName = cmdList[1]
+				s = open(fileName, 'r').read()
+				ephyconn.sendall(pad(len(s), 1024))
+				recvAll(ephyconn, 1)
+				ephyconn.sendall(s)
+				recvAll(ephyconn, 1)
+				ephyconn.close()
+
+			if(cmd[0:3] == 'put'):
+				ephyconn = recvEphyConn(clientSock)
+				cmdList = cmd.split()
+				fileName = cmdList[1]
+				f = open(fileName, 'w')
+				slen = unpad(recvAll(ephyconn, 1024))
+				ephyconn.sendall('1')
+				s = recvAll(ephyconn, slen)
+				ephyconn.sendall('1')
+				ephyconn.close()
+				f.write(s)
+				f.close()
 
 		# Close our side
 		clientSock.close()

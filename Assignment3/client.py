@@ -58,45 +58,49 @@ def recvAll(sock, numBytes):
         # Add the received bytes to the buffer
         recvBuff += tmpBuff
     return recvBuff
-#____________________________START___________________
 
-# Server address
-serverAddr = socket.gethostbyname(sys.argv[1])
-# Server port
-serverPort = int(sys.argv[2])
-# Create a command TCP socket
-commandSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Connect both sockets to the server
-try:
-	commandSock.connect((serverAddr, serverPort))
-except:
-	print("Could not connect")
-	exit(0)
 
-# Keep sending until all is sent
-while True:
-	cmd  = raw_input("ftp> ")
-	
-	if(cmd == 'exit'):
-		print('Exiting')
-		break
+def main():
+	#Server address
+	serverAddr = socket.gethostbyname(sys.argv[1])
+	# Server port
+	serverPort = int(sys.argv[2])
+	# Create a command TCP socket
+	commandSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Connect both sockets to the server
+	try:
+		commandSock.connect((serverAddr, serverPort))
+	except:
+		print("Could not connect")
+		exit(0)
 
-	if(cmd == 'ls'):
-		#Send the command size - 1 byte
-		commandSock.sendall('2')
-		success = recvAll(commandSock, 1)
-		#Send the command - cmdsize bytes
-		commandSock.sendall(cmd)
-		success = recvAll(commandSock, 1)
-		ephyconn = setupEphyConn(commandSock)
-		ls(ephyconn)
-		ephyconn.close()
+	# Keep sending until all is sent
+	while True:
+		cmd  = raw_input("ftp> ")
+		
+		if(cmd == 'exit'):
+			print('Exiting')
+			break
 
-	if(cmd == 'get'):
-		pass#getfile()
+		if(cmd == 'ls'):
+			#Send the command size - 1 byte
+			commandSock.sendall('2')
+			success = recvAll(commandSock, 1)
+			#Send the command - cmdsize bytes
+			commandSock.sendall(cmd)
+			success = recvAll(commandSock, 1)
+			ephyconn = setupEphyConn(commandSock)
+			ls(ephyconn)
+			ephyconn.close()
 
-	if(cmd == 'put'):
-		pass#putfile()
+		if(cmd == 'get'):
+			pass#getfile()
 
-commandSock.close()
+		if(cmd == 'put'):
+			pass#putfile()
+
+	commandSock.close()
+
+if __name__ == "__main__":
+	main()
 

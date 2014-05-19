@@ -18,7 +18,7 @@ if len(sys.argv) < 2:
 
 def recvEphyConn(startSock):
 	ephyPort = unpad(recvAll(startSock, 5))
-	clientSock.sendall('1')
+	startSock.sendall('1')
 	ephySock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	ephySock.connect(('localhost', int(ephyPort)))
 	return ephySock
@@ -41,24 +41,6 @@ def GetListInDirectory():
 		s = s + f + '\n'
 	return s
 
-#_____________________START____________
-
-
-welcomePort = int(sys.argv[1])
-# Create a welcome socket. 
-welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Bind the socket to the port
-welcomeSock.bind(('', welcomePort))
-# Start listening on the socket
-welcomeSock.listen(10)
-
-# ************************************************
-# Receives the specified number of bytes
-# from the specified socket
-# @param sock - the socket from which to receive
-# @param numBytes - the number of bytes to receive
-# @return - the bytes received
-# *************************************************
 def recvAll(sock, numBytes):
 	# The buffer
 	recvBuff = ""
@@ -83,27 +65,38 @@ def ls(ephyconn):
 	ephyconn.sendall(fileList, fileListSize)
 	recvAll(ephyconn, 1)
 
-# Accept connections forever
-while True:
-	
-	print "Waiting for connections..."
-	# Accept connections
-	clientSock, addr = welcomeSock.accept()
-	print "Accepted connection from client: ", addr, "\n"
-	
-	while 1:
-		# The size of the incoming command
-		cmdSize = recvAll(clientSock, 1)
-		clientSock.sendall('1')
-		# Get the inc. command
-		cmd = recvAll(clientSock, cmdSize)
-		clientSock.sendall('1')
-		if(cmd == 'ls'):
-			# Get the ephy port
-			ephyconn = recvEphyConn(clientSock)
-			ls(ephyconn)
-			ephyconn.close()
+def main():
+	welcomePort = int(sys.argv[1])
+	# Create a welcome socket. 
+	welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Bind the socket to the port
+	welcomeSock.bind(('', welcomePort))
+	# Start listening on the socket
+	welcomeSock.listen(10)
+	# Accept connections forever
+	while True:
+		
+		print "Waiting for connections..."
+		# Accept connections
+		clientSock, addr = welcomeSock.accept()
+		print "Accepted connection from client: ", addr, "\n"
+		
+		while 1:
+			# The size of the incoming command
+			cmdSize = recvAll(clientSock, 1)
+			clientSock.sendall('1')
+			# Get the inc. command
+			cmd = recvAll(clientSock, cmdSize)
+			clientSock.sendall('1')
+			if(cmd == 'ls'):
+				# Get the ephy port
+				ephyconn = recvEphyConn(clientSock)
+				ls(ephyconn)
+				ephyconn.close()
 
-# Close our side
-clientSock.close()
+		# Close our side
+		clientSock.close()
+
+if __name__ == "__main__":
+	main()
 

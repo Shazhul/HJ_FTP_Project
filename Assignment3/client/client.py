@@ -9,6 +9,7 @@ import sys
 import socket
 from netfunc import *
 
+
 # Command line checks 
 if len(sys.argv) < 3:
 	print "USAGE python " + sys.argv[0] + " <SERVER_MACHINE> <SERVER_PORT>"
@@ -19,26 +20,15 @@ def ls(ephyconn):
 	ephyconn.sendall('1')
 	fileList = recvAll(ephyconn, (int(fileListSize)-1))
 	ephyconn.sendall('1')
+	ephyconn.close()
 	print(fileList)
 
-def main():
-	#Server address
-	serverAddr = socket.gethostbyname(sys.argv[1])
-	# Server port
-	serverPort = int(sys.argv[2])
-	# Create a command TCP socket
-	commandSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	# Connect both sockets to the server
-	try:
-		commandSock.connect((serverAddr, serverPort))
-	except:
-		print("Could not connect")
-		exit(0)
-
-	# Keep sending until all is sent
+def clientproc(startSock):
+	commandSock = setupEphyConn(startSock)
+	startSock.close()
 	while True:
 		cmd  = raw_input("ftp> ")
-		
+
 		if(cmd == 'exit'):
 			commandSock.sendall(pad(cmd, DEFAULT_SEND_SIZE))
 			success = recvAll(commandSock, ACK_SIZE)
@@ -58,7 +48,6 @@ def main():
 					ls(ephyconn)
 				except:
 					print('Error calling ls')
-				ephyconn.close()
 
 			elif(cmd[0:3] == 'get'):
 				ephyconn = setupEphyConn(commandSock)
@@ -66,7 +55,6 @@ def main():
 					recvFile(ephyconn, cmd.split()[1])
 				except:
 					print('Error calling get')
-				ephyconn.close()
 
 			elif(cmd[0:3] == 'put'):
 				ephyconn = setupEphyConn(commandSock)
@@ -74,13 +62,28 @@ def main():
 					sendFile(ephyconn, cmd.split()[1])
 				except:
 					print('Error calling put')
-				ephyconn.close()
 			else:
 				break
 		else:
 			print('Invalid command')
-
+	
 	commandSock.close()
+
+
+def main():
+	#Server address
+	serverAddr = socket.gethostbyname(sys.argv[1])
+	# Server port
+	serverPort = int(sys.argv[2])
+	# Create a command TCP socket
+	startSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Connect both sockets to the server
+	try:
+		startSock.connect((serverAddr, serverPort))
+	except:
+		print("Could not connect")
+		exit(0)
+	clientproc(startSock)
 
 if __name__ == "__main__":
 	main()

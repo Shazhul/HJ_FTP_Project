@@ -7,6 +7,7 @@
 import os
 import sys
 import socket
+from netfunc import *
 
 # Command line checks 
 if len(sys.argv) < 3:
@@ -14,51 +15,11 @@ if len(sys.argv) < 3:
 	exit(0)
 
 def ls(ephyconn):
-	fileListSize = unpad(recvAll(ephyconn, 1024))
+	fileListSize = unpad(recvAll(ephyconn, DEFAULT_SEND_SIZE))
 	ephyconn.sendall('1')
 	fileList = recvAll(ephyconn, (int(fileListSize)-1))
 	ephyconn.sendall('1')
 	print(fileList)
-
-def pad(s, length):		
-	padding = '&'
-	s = str(s)
-	if len(s) < length:
-		s = s+ (length - len(s))*padding
-	return s
-
-def unpad(s):
-    padding = '&'
-    return s.strip(padding)
-
-	#Get the list of files
-def setupEphyConn(startSock):
-	ephySock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	ephySock.bind(('localhost',0))
-	ephySock.listen(1)
-	ephyPort = ephySock.getsockname()[1]
-	#Sending 5 bytes
-	startSock.sendall(pad(ephyPort, 5))
-	success = recvAll(startSock, 1)
-	ephyconn, ephyaddress = ephySock.accept()
-	return ephyconn
-
-def recvAll(sock, numBytes):
-    # The buffer
-    recvBuff = ""
-    # The temporary buffer
-    tmpBuff = ""
-    # Keep receiving till all is received
-    while len(recvBuff) < int(numBytes):
-        # Attempt to receive bytes
-        tmpBuff =  sock.recv(int(numBytes))
-        # The other side has closed the socket
-        if not tmpBuff:
-            break
-        # Add the received bytes to the buffer
-        recvBuff += tmpBuff
-    return recvBuff
-
 
 def main():
 	#Server address
@@ -79,46 +40,45 @@ def main():
 		cmd  = raw_input("ftp> ")
 		
 		if(cmd == 'exit'):
-			print('Exiting')
+			commandSock.sendall(pad(cmd, DEFAULT_SEND_SIZE))
+			success = recvAll(commandSock, ACK_SIZE)
 			break
 		
+		if(verifyCommand(cmd)):
 		#Send the command
-		commandSock.sendall(pad(cmd, 1024))
-		success = recvAll(commandSock, 1)
+			try:
+				commandSock.sendall(pad(cmd, DEFAULT_SEND_SIZE))
+				success = recvAll(commandSock, ACK_SIZE)
+			except:
+				print('Error sending command')
 
-		if(cmd[0:2] == 'ls'):
-			ephyconn = setupEphyConn(commandSock)
-			ls(ephyconn)
-			ephyconn.close()
+			if(cmd[0:2] == 'ls'):
+				ephyconn = setupEphyConn(commandSock)
+				try:
+					ls(ephyconn)
+				except:
+					print('Error calling ls')
+				ephyconn.close()
 
-		if(cmd[0:3] == 'get'):
-			print('here')
-			ephyconn = setupEphyConn(commandSock)
-			cmdList = cmd.split()
-			fileName = cmdList[1]
-			f = open(fileName, 'w')
-			slen = unpad(recvAll(ephyconn, 1024))
-			print(slen)
-			ephyconn.sendall('1')
-			s = recvAll(ephyconn, slen)
-			print(s)
-			ephyconn.sendall('1')
-			ephyconn.close()
-			f.write(s)
-			f.close()
+			elif(cmd[0:3] == 'get'):
+				ephyconn = setupEphyConn(commandSock)
+				try:
+					recvFile(ephyconn, cmd.split()[1])
+				except:
+					print('Error calling get')
+				ephyconn.close()
 
-		if(cmd[0:3] == 'put'):
-			ephyconn = setupEphyConn(commandSock)
-			cmdList = cmd.split()
-			fileName = cmdList[1]
-			s = open(fileName, 'r').read()
-			print(len(s))
-			print(s)
-			ephyconn.sendall(pad(len(s), 1024))
-			recvAll(ephyconn, 1)
-			ephyconn.sendall(s)
-			recvAll(ephyconn, 1)
-			ephyconn.close()
+			elif(cmd[0:3] == 'put'):
+				ephyconn = setupEphyConn(commandSock)
+				try:
+					sendFile(ephyconn, cmd.split()[1])
+				except:
+					print('Error calling put')
+				ephyconn.close()
+			else:
+				break
+		else:
+			print('Invalid command')
 
 	commandSock.close()
 

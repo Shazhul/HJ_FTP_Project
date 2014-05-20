@@ -75,7 +75,6 @@ def verifyCommand(cmd):
     return False
 
 def sendFile(ephyconn, fileName):
-	print'sending file'
 	try:
 		data = open(fileName, 'r').read()
 	except:
@@ -88,10 +87,8 @@ def sendFile(ephyconn, fileName):
 	ephyconn.sendall(data)
 	recvAll(ephyconn, ACK_SIZE)
 	ephyconn.close()
-	print 'file sent'
 
 def recvFile(ephyconn, fileName):
-	print'getting file'
 	datafile = open(fileName, 'w')
 	datalen = unpad(recvAll(ephyconn, DEFAULT_SEND_SIZE))
 	if(datalen == '0'):
@@ -104,4 +101,3 @@ def recvFile(ephyconn, fileName):
 	ephyconn.close()
 	datafile.write(data)
 	datafile.close()
-	print 'file got'

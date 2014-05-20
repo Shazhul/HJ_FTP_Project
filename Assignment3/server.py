@@ -9,6 +9,7 @@ import socket
 from os import listdir
 from os.path import isfile
 from netfunc import *
+import multiprocessing
 from multiprocessing import Process
 
 # Command line checks 
@@ -73,13 +74,9 @@ def serverproc(port, addr):
 
 def main():
 	welcomePort = int(sys.argv[1])
-	# Create a welcome socket. 
 	welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	# Bind the socket to the port
 	welcomeSock.bind(('', welcomePort))
-	# Start listening on the socket
 	welcomeSock.listen(10)
-	# Accept connections forever
 	while True:
 		print "Waiting for connections..."
 		# Accept connections
@@ -89,6 +86,7 @@ def main():
 		clientSock.sendall('1')
 		p = Process(target=serverproc, args=(port, addr,))
 		p.start()
+		multiprocessing.active_children()
 
 if __name__ == "__main__":
 	main()

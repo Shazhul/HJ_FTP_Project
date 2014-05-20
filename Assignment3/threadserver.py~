@@ -10,6 +10,7 @@ from os import listdir
 from os.path import isfile
 from netfunc import *
 import threading
+from multiprocessing import Process
 
 # Command line checks 
 if len(sys.argv) < 2:
@@ -32,7 +33,7 @@ def ls(ephyconn):
 	recvAll(ephyconn, ACK_SIZE)
 	ephyconn.close()
 
-def serverproc(port, addr):
+def serverthread(port, addr):
 	clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	clientSock.connect((addr[0], int(port)))
 	while True:
@@ -75,9 +76,13 @@ tpool = []
 
 def main():
 	welcomePort = int(sys.argv[1])
+	# Create a welcome socket. 
 	welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Bind the socket to the port
 	welcomeSock.bind(('', welcomePort))
+	# Start listening on the socket
 	welcomeSock.listen(10)
+	# Accept connections forever
 	while True:
 		print "Waiting for connections..."
 		# Accept connections
@@ -85,7 +90,8 @@ def main():
 		print "Accepted connection from client: ", addr, "\n"
 		port = unpad(recvAll(clientSock, SOCKET_SEND_SIZE))
 		clientSock.sendall('1')
-		t = threading.Thread(target=serverproc, args=(port, addr,))
+		t = Thread(target=serverthread, args=(port, addr,))
+		tpool.append(t)
 		t.start()
 		for thr in tpool:
 			t.join(0.1)

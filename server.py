@@ -8,8 +8,9 @@ import sys
 import socket
 from os import listdir
 from os.path import isfile
+
 from netfunc import *
-import threading
+from multiprocessing import Process
 
 # Command line checks 
 if len(sys.argv) < 2:
@@ -71,25 +72,53 @@ def serverproc(port, addr):
 					print('Error calling put')
 	clientSock.close()
 
-tpool = []
+def handleCommand(dataconn, addr, cmd):
+	if(cmd == 'ls'):
+		# Get the ephy port
+		ephyconn = recvEphyConn(dataconn)
+		ls(ephyconn)
+		ephyconn.close()
+
+def clientConnection(clientSock, addr):
+	dataconn = setupEphyConn(clientSock)
+	while 1:
+		# The size of the incoming command
+		cmdSize = recvAll(dataconn, 1)
+		dataconn.sendall('1')
+		# Get the inc. command
+		cmd = recvAll(dataconn, dataSize)
+		dataconn.sendall('1')
+		
+		#Exit if cmd == ''
+		
+		#Child creates thread to handle command
+		try:
+			worker = threading.Thread(target=CommandConnection, args=(dataconn, addr, cmd))
+			worker.start()
+			worker.join(0.5)
+		except:
+		    print "Error executing command thread."
+	dataconn.close()
 
 def main():
 	welcomePort = int(sys.argv[1])
+	# Create a welcome socket. 
 	welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Bind the socket to the port
 	welcomeSock.bind(('', welcomePort))
+	# Start listening on the socket
 	welcomeSock.listen(10)
+	# Accept connections forever
 	while True:
 		print "Waiting for connections..."
 		# Accept connections
 		clientSock, addr = welcomeSock.accept()
 		print "Accepted connection from client: ", addr, "\n"
+
 		port = unpad(recvAll(clientSock, SOCKET_SEND_SIZE))
 		clientSock.sendall('1')
-		t = threading.Thread(target=serverproc, args=(port, addr,))
-		t.start()
-		for thr in tpool:
-			t.join(0.1)
-
+		p = Process(target=serverproc, args=(port, addr,))
+		
 if __name__ == "__main__":
 	main()
 

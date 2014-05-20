@@ -8,14 +8,52 @@ import sys
 import socket
 from os import listdir
 from os.path import isfile
+<<<<<<< Updated upstream
 from netfunc import *
+from multiprocessing import Process
+=======
+from cmds import FTP_COMMANDS
 import threading
+import multiprocessing
+>>>>>>> Stashed changes
 
 # Command line checks 
 if len(sys.argv) < 2:
 	print "USAGE python " + sys.argv[0] + " <SERVER_PORT>" 
 	exit(0)
 
+<<<<<<< Updated upstream
+=======
+def setupEphyConn(startSock):
+	ephySock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	ephySock.bind(('localhost',0))
+	ephySock.listen(1)
+	ephyPort = ephySock.getsockname()[1]
+	#Sending 5 bytes
+	startSock.sendall(pad(ephyPort, 5))
+	success = recvAll(startSock, 1)
+	ephyconn, ephyaddress = ephySock.accept()
+	return ephyconn
+
+def recvEphyConn(startSock):
+	ephyPort = unpad(recvAll(startSock, 5))
+	startSock.sendall('1')
+	ephySock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	ephySock.connect(('localhost', int(ephyPort)))
+	return ephySock
+
+def pad(s, length):
+    padding = '&'
+    s = str(s)
+    if len(s) < length:
+        s = s+ (length - len(s))*padding
+    return s
+
+def unpad(s):
+	padding = '&'
+	return s.strip(padding)
+
+>>>>>>> Stashed changes
 def GetListInDirectory():
 	p = listdir('.')
 	s = ''
@@ -71,24 +109,66 @@ def serverproc(port, addr):
 					print('Error calling put')
 	clientSock.close()
 
-tpool = []
+def handleCommand(dataconn, addr, cmd):
+	if(cmd == 'ls'):
+		# Get the ephy port
+		ephyconn = recvEphyConn(dataconn)
+		ls(ephyconn)
+		ephyconn.close()
+
+def clientConnection(clientSock, addr):
+	dataconn = setupEphyConn(clientSock)
+	while 1:
+		# The size of the incoming command
+		cmdSize = recvAll(dataconn, 1)
+		dataconn.sendall('1')
+		# Get the inc. command
+		cmd = recvAll(dataconn, dataSize)
+		dataconn.sendall('1')
+		
+		#Exit if cmd == ''
+		
+		#Child creates thread to handle command
+		try:
+			worker = threading.Thread(target=CommandConnection, args=(dataconn, addr, cmd))
+			worker.start()
+			worker.join(0.5)
+		except:
+		    print "Error executing command thread."
+	dataconn.close()
 
 def main():
 	welcomePort = int(sys.argv[1])
+	# Create a welcome socket. 
 	welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Bind the socket to the port
 	welcomeSock.bind(('', welcomePort))
+	# Start listening on the socket
 	welcomeSock.listen(10)
+	# Accept connections forever
 	while True:
 		print "Waiting for connections..."
 		# Accept connections
 		clientSock, addr = welcomeSock.accept()
 		print "Accepted connection from client: ", addr, "\n"
+<<<<<<< Updated upstream
 		port = unpad(recvAll(clientSock, SOCKET_SEND_SIZE))
 		clientSock.sendall('1')
-		t = threading.Thread(target=serverproc, args=(port, addr,))
-		t.start()
-		for thr in tpool:
-			t.join(0.1)
+		p = Process(target=serverproc, args=(port, addr,))
+		p.start()
+=======
+		
+		#Create child process to handle client
+		try:
+			child = multiprocessing.Process(target=clientConnection, args=(clientSock,addr,))
+			child.deamon = True
+			child.start()
+		except:
+			print "Error creating client child process."
+
+		# Close our side
+		clientSock.close()
+>>>>>>> Stashed changes
 
 if __name__ == "__main__":
 	main()

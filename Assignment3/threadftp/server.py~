@@ -9,7 +9,8 @@ import socket
 from os import listdir
 from os.path import isfile
 from netfunc import *
-import threading
+import multiprocessing
+from multiprocessing import Process
 
 # Command line checks 
 if len(sys.argv) < 2:

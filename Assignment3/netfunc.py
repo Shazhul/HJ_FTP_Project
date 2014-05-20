@@ -81,23 +81,28 @@ def sendFile(ephyconn, fileName):
 		print('Error opening file for reading')
 		ephyconn.sendall(pad('0', DEFAULT_SEND_SIZE)) 
 		recvAll(ephyconn, ACK_SIZE)
-		return 
-	ephyconn.sendall(pad(len(data), DEFAULT_SEND_SIZE))
-	recvAll(ephyconn, ACK_SIZE)
-	ephyconn.sendall(data)
-	recvAll(ephyconn, ACK_SIZE)
-	ephyconn.close()
+		return
+	if len(data) > 0: 
+		ephyconn.sendall(pad(len(data), DEFAULT_SEND_SIZE))
+		recvAll(ephyconn, ACK_SIZE)
+		ephyconn.sendall(data)
+		recvAll(ephyconn, ACK_SIZE)
+		ephyconn.close()
+	else:
+		print('No such file')
+		ephyconn.sendall(pad('0', DEFAULT_SEND_SIZE)) 
+		recvAll(ephyconn, ACK_SIZE)
 
 def recvFile(ephyconn, fileName):
-	datafile = open(fileName, 'w')
 	datalen = unpad(recvAll(ephyconn, DEFAULT_SEND_SIZE))
 	if(datalen == '0'):
 		ephyconn.sendall('1')
 		print('File transfer error')
-		return
-	ephyconn.sendall('1')
-	data = recvAll(ephyconn, datalen)
-	ephyconn.sendall('1')
-	ephyconn.close()
-	datafile.write(data)
-	datafile.close()
+	else:
+		datafile = open(fileName, 'w')
+		ephyconn.sendall('1')
+		data = recvAll(ephyconn, datalen)
+		ephyconn.sendall('1')
+		ephyconn.close()
+		datafile.write(data)
+		datafile.close()
